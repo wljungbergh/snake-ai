@@ -4,11 +4,27 @@ import random
 
 
 
-BG_COLOR = (18, 13, 49);
-SNAKE_COLOR = (149, 198, 35)
-HEAD_SNAKE_COLOR = (200, 240, 65)
-FOOD_COLOR = (241, 218, 196)
+BG_COLOR_ = (18, 13, 49);
+SNAKE_COLOR_ = (149, 198, 35)
+HEAD_SNAKE_COLOR_ = (200, 240, 65)
+FOOD_COLOR_ = (241, 218, 196)
 
+
+
+class Simulator:
+    def __init__(self, size = 20, max_steps = 200):
+        self.size = size
+        self.max_steps = max_steps
+
+    def simulate(self):
+        self.game = Game(self.size)
+
+        while not self.game.game_over and self.game.moves_made < self.max_steps:
+            self.game.change_dir(random.randint(0,3))
+            self.game.next_move()
+        
+
+        return self.game.moves_made, self.game.snake.length
 
 
 class Game:
@@ -24,9 +40,15 @@ class Game:
     def change_dir(self, direction):
         self.snake.direction = direction
     
-    def change_dir(self, direction):
-        self.snake.direction = direction
-            
+    def distance_to_food(self):
+        dist = [abs(a - b) for a,b in zip(self.snake.pos, self.food_pos)]
+        return dist[0] + dist[1]
+    
+    def create_obs(self, shape = (3,3,2)):
+        grid = np.zeros(shape=shape, dtype=np.float32)
+        #implement returning 3x3 occupancy grid
+        raise NotImplementedError()
+
     def spawn_new_food(self):
         pos = np.random.randint(self.size, size=2)
         pos = pos.tolist()
@@ -37,9 +59,8 @@ class Game:
 
         self.food_pos = pos
 
-    def next_move(self,direction = 0):
+    def next_move(self,):
         self.moves_made += 1
-        #self.snake.direction = direction
         self.snake.move()
         if self.snake.pos == self.food_pos:
             self.spawn_new_food()
@@ -56,8 +77,6 @@ class Game:
 
         self.check_collision()
 
-
-    
     def check_collision(self):
         if self.snake.pos in self.snake.body[1:]:
             self.game_over = True
@@ -74,22 +93,14 @@ class GameBoard:
         self.width = 400
         self.height = 400
         self.boxsize = int(self.width/self.size)
-        self.snake = Snake([int(self.size/2), int(self.size/2)])
-        self.spawn_new_food()
-        self.moves_made = 0
-        self.game_over = False
         self.pygame_init()
-        self.just_ate = False
-        
-
-
     
     def pygame_init(self):
         pygame.init()
         pygame.font.init()
         self.screen = pygame.display.set_mode((self.width, self.height),0,32)
         pygame.display.set_caption('snake-ai')
-        self.screen.fill(BG_COLOR)
+        self.screen.fill(BG_COLOR_)
         self.clock = pygame.time.Clock()
         self.draw_snake()
         self.font = pygame.font.Font('freesansbold.ttf', 32) 
@@ -97,25 +108,24 @@ class GameBoard:
     def draw_food(self):
         top = self.game.food_pos[0] * self.boxsize
         left = self.game.food_pos[1] * self.boxsize
-        pygame.draw.rect(self.screen,FOOD_COLOR, [top, left, self.boxsize, self.boxsize], 0)
+        pygame.draw.rect(self.screen,FOOD_COLOR_, [top, left, self.boxsize, self.boxsize], 0)
 
     def draw_bg(self):
-        self.screen.fill(BG_COLOR)
+        self.screen.fill(BG_COLOR_)
 
     def draw_score(self):
         font = pygame.font.SysFont(None, 16)
-        img = font.render('score: {}'.format(self.snake.length), True, [255, 255, 255])
+        img = font.render('score: {}'.format(self.game.snake.length), True, [255, 255, 255])
         self.screen.blit(img, (20, 20))
   
     def draw_snake(self):
         first = True
-        #for pos in self.snake.body:
         for pos in self.game.snake.body:
             if first: 
-                color = HEAD_SNAKE_COLOR
+                color = HEAD_SNAKE_COLOR_
                 first = False
             else:
-                color = SNAKE_COLOR
+                color = SNAKE_COLOR_
             top = pos[0] * self.boxsize
             left = pos[1] * self.boxsize
            
@@ -128,51 +138,6 @@ class GameBoard:
         self.draw_snake()
         self.draw_score()
 
-
-    def change_dir(self, direction):
-        self.snake.direction = direction
-
-    def spawn_new_food(self):
-        pos = np.random.randint(self.size, size=2)
-        pos = pos.tolist()
-
-        while pos in self.snake.body:
-            pos = np.random.randint(self.size, size=2)
-            pos = pos.tolist()
-
-        self.food_pos = pos
-         
-    
-
-    def next_move(self,direction = 0):
-        self.moves_made += 1
-        #self.snake.direction = direction
-        self.snake.move()
-        if self.snake.pos == self.food_pos:
-            self.spawn_new_food()
-            self.snake.length += 1
-            if self.snake.length == self.size^2: self.game_won = True
-            self.just_ate = True
-            self.snake.body.pop()
-            return
-
-        if self.just_ate:
-            self.just_ate = False
-        else:
-            self.snake.body.pop()
-
-        self.check_collision()
-
-
-    
-    def check_collision(self):
-        if self.snake.pos in self.snake.body[1:]:
-            self.game_over = True
-
-        if any(p > self.size-1 or p < 0 for p in self.snake.pos):
-            self.game_over = True
-
-       
 
 class Snake:
     def __init__(self, pos):
@@ -194,59 +159,61 @@ class Snake:
             self.pos[1] += -1
 
         self.body.insert(1, tmp)
-        
+    
        
 
     
         
         
 
+if __name__ == "__main__":
+    gb = GameBoard(40)
+    # The loop will carry on until the user exit the game (e.g. clicks the close button).
+    carryOn = True
+    running = False
+    # The clock will be used to control how fast the screen updates
 
-gb = GameBoard(20)
-# The loop will carry on until the user exit the game (e.g. clicks the close button).
-carryOn = True
+    # -------- Main Program Loop -----------
+    while carryOn and not gb.game.game_over:
+        # --- Main event loop
+        for event in pygame.event.get(): # User did something
+            if event.type == pygame.QUIT: # If user clicked close
+                carryOn = False # Flag that we are done so we exit this loop
+            if event.type == pygame.KEYDOWN:
+                if not running:
+                    running = True
 
-# The clock will be used to control how fast the screen updates
+                if event.key == pygame.K_LEFT:
+                    #gb.next_move(2)
+                    gb.game.change_dir(2)
+                if event.key == pygame.K_UP:
+                    #gb.next_move(3)
+                    gb.game.change_dir(3)
+                if event.key == pygame.K_RIGHT:
+                    #gb.next_move(0)
+                    gb.game.change_dir(0)
+                if event.key == pygame.K_DOWN:
+                    #gb.next_move(1)
+                    gb.game.change_dir(1)
 
-# -------- Main Program Loop -----------
-while carryOn and not gb.game_over:
-    # --- Main event loop
-    for event in pygame.event.get(): # User did something
-        if event.type == pygame.QUIT: # If user clicked close
-            carryOn = False # Flag that we are done so we exit this loop
-        if event.type == pygame.KEYDOWN:
-            
-
-            if event.key == pygame.K_LEFT:
-                #gb.next_move(2)
-                gb.game.change_dir(2)
-            if event.key == pygame.K_UP:
-                #gb.next_move(3)
-                gb.game.change_dir(3)
-            if event.key == pygame.K_RIGHT:
-                #gb.next_move(0)
-                gb.game.change_dir(0)
-            if event.key == pygame.K_DOWN:
-                #gb.next_move(1)
-                gb.game.change_dir(1)
-
-   
-
-
-
-    # --- Go ahead and update the screen with what we've drawn.
     
-    #gb.change_dir(random.randint(0, 3))
-    gb.next_move()
-    gb.redraw()
-    pygame.display.update()
 
-    # --- Limit to 60 frames per second
-    gb.clock.tick(15)
 
-    #Once we have exited the main program loop we can stop the game engine:
 
-print("Your score was: {}".format(gb.snake.length))
-pygame.quit()
+        # --- Go ahead and update the screen with what we've drawn.
+        
+        #gb.change_dir(random.randint(0, 3))
+        if running:
+            gb.game.next_move()
+        gb.redraw()
+        pygame.display.update()
+
+        # --- Limit to 60 frames per second
+        gb.clock.tick(15)
+
+        #Once we have exited the main program loop we can stop the game engine:
+
+    print("Your score was: {}".format(gb.game.snake.length))
+    pygame.quit()
 
 
