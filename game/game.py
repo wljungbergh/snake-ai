@@ -34,12 +34,42 @@ class Game:
         self.moves_made = 0
         self.just_ate = False
         self.game_over = False
+        self.game_won = False
         self.spawn_new_food()
 
+
+    def reset(self):
+        self.moves_made = 0
+        self.game_over = False
+        self.just_ate = False
+        self.spawn_new_food()
+        self.snake = Snake([int(self.size/2), int(self.size/2)])
 
     def change_dir(self, direction):
         self.snake.direction = direction
     
+    def get_state(self):
+        pos = self.snake.pos
+        fp = self.food_pos
+        state = [0]*12
+        # collision states
+        
+        state[0] = (self.check_collision([a+b for a,b in zip(pos, [1,0])]))
+        state[1] = (self.check_collision([a+b for a,b in zip(pos, [0,1])]))
+        state[2] = (self.check_collision([a+b for a,b in zip(pos, [-1,0])]))
+        state[3] = (self.check_collision([a+b for a,b in zip(pos, [0,-1])]))
+        
+        # food pos states
+        if ((fp[0] > pos[0]) and (fp[1] == pos[1])): state[4]   = 1
+        if ((fp[0] > pos[0]) and (fp[1] > pos[1])): state[5]    = 1
+        if ((fp[0] == pos[0]) and (fp[1] > pos[1])): state[6]   = 1
+        if ((fp[0] < pos[0]) and (fp[1] > pos[1])): state[7]    = 1
+        if ((fp[0] < pos[0]) and (fp[1] == pos[1])): state[8]   = 1
+        if ((fp[0] < pos[0]) and (fp[1] < pos[1])): state[9]    = 1
+        if ((fp[0] == pos[0]) and (fp[1] < pos[1])): state[10]  = 1
+        if ((fp[0] > pos[0]) and (fp[1] < pos[1])): state[11]   = 1
+        return state
+
     def distance_to_food(self):
         dist = [abs(a - b) for a,b in zip(self.snake.pos, self.food_pos)]
         return dist[0] + dist[1]
@@ -75,21 +105,26 @@ class Game:
         else:
             self.snake.body.pop()
 
-        self.check_collision()
-
-    def check_collision(self):
-        if self.snake.pos in self.snake.body[1:]:
+        if self.check_collision(self.snake.pos): 
             self.game_over = True
 
-        if any(p > self.size-1 or p < 0 for p in self.snake.pos):
-            self.game_over = True
+    def check_collision(self, pos):
+        if pos in self.snake.body[1:]:
+            return 1
+        elif any(p > self.size-1 or p < 0 for p in self.snake.pos):
+            return 1
+        else:
+            return 0
+        
+
 
 
 
 class GameBoard:
-    def __init__(self, size = 20):
-        self.game = Game(size)
+    def __init__(self, game, size = 20, show_score = False):
+        self.game = game
         self.size = size
+        self.show_score = False
         self.width = 400
         self.height = 400
         self.boxsize = int(self.width/self.size)
@@ -97,13 +132,15 @@ class GameBoard:
     
     def pygame_init(self):
         pygame.init()
-        pygame.font.init()
         self.screen = pygame.display.set_mode((self.width, self.height),0,32)
         pygame.display.set_caption('snake-ai')
         self.screen.fill(BG_COLOR_)
         self.clock = pygame.time.Clock()
         self.draw_snake()
-        self.font = pygame.font.Font('freesansbold.ttf', 32) 
+        if self.show_score:
+            pygame.font.init()
+            self.font = pygame.font.Font('freesansbold.ttf', 32) 
+        
 
     def draw_food(self):
         top = self.game.food_pos[0] * self.boxsize
@@ -130,13 +167,13 @@ class GameBoard:
             left = pos[1] * self.boxsize
            
             pygame.draw.rect(self.screen, color, [top, left, self.boxsize, self.boxsize],0)
-
     
     def redraw(self):
         self.draw_bg()
         self.draw_food()
         self.draw_snake()
-        self.draw_score()
+        if self.show_score:
+            self.draw_score()
 
 
 class Snake:
@@ -167,7 +204,8 @@ class Snake:
         
 
 if __name__ == "__main__":
-    gb = GameBoard(40)
+    size = 40
+    gb = GameBoard(Game(size), size)
     # The loop will carry on until the user exit the game (e.g. clicks the close button).
     carryOn = True
     running = False
