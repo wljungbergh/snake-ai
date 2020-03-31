@@ -1,8 +1,9 @@
 import numpy as np
 
-s = np.random.uniform(size=(5,3))
 
+from datetime import datetime
 
+now = datetime.now()
 
-print(s)
-print(s[2])
+current_time = now.strftime("%m/%d/%Y-%H-%M")
+print("Current Time =", current_time)

@@ -44,15 +44,7 @@ class Game:
 
     def reset(self, size):
         self.__init__(size = size)
-        '''
-        self.moves_made = 0
-        self.moves_made_since_eat = 0
-        self.game_over = False
-        self.just_ate = False
-        self.spawn_new_food()
-        self.snake.reset([int(self.size/2), int(self.size/2)]) #= Snake([int(self.size/2), int(self.size/2)])
-        '''
-        
+     
     def change_dir(self,direction):
         self.snake.direction = direction
 
@@ -62,14 +54,11 @@ class Game:
         pos = self.snake.pos
         fp = self.food_pos
         
-        
         # collision states
         tmp1 = (self.check_collision([a+b for a,b in zip(pos, [1,0])]))
         tmp2 = (self.check_collision([a+b for a,b in zip(pos, [0,1])]))
         tmp3 = (self.check_collision([a+b for a,b in zip(pos, [-1,0])]))
         tmp4 = (self.check_collision([a+b for a,b in zip(pos, [0,-1])]))
-        
-        
 
         # food pos states
         if ((fp[0] == pos[0]) and (fp[1] == pos[1])): tmp5 = 0
@@ -262,32 +251,25 @@ if __name__ == "__main__":
                     running = True
 
                 if event.key == pygame.K_LEFT:
-                    #gb.next_move(2)
                     if gb.game.valid_move(2):
                         gb.game.snake.direction = 2
                     else:
                         print("not ok")
                 if event.key == pygame.K_UP:
-                    #gb.next_move(3)
                     if gb.game.valid_move(3):
                         gb.game.snake.direction = 3
                     else:
                         print("not ok")
                 if event.key == pygame.K_RIGHT:
-                    #gb.next_move(0)
                     if gb.game.valid_move(0):
                         gb.game.snake.direction = 0
                     else:
                         print("not ok")
                 if event.key == pygame.K_DOWN:
-                    #gb.next_move(1)
                     if gb.game.valid_move(1):
                         gb.game.snake.direction = 1
                     else:
                         print("not ok")
-
-    
-
 
 
         # --- Go ahead and update the screen with what we've drawn.
@@ -300,7 +282,7 @@ if __name__ == "__main__":
         pygame.display.update()
 
         # --- Limit to 60 frames per second
-        gb.clock.tick(1)
+        gb.clock.tick(15)
 
         #Once we have exited the main program loop we can stop the game engine:
 

@@ -1,10 +1,13 @@
 from env.environment import *
+from datetime import datetime
+
 
 if __name__ == "__main__":
     LEARNING_RATE = 0.01
     DISCOUT = 0.99
-    EPISODES = 1000000
-
+    EPISODES = 10000
+    now = datetime.now()
+    current_time = now.strftime("%m/%d/%Y-%H-%M")
 
     se = SnakeEnv(size=20)
     se.game.reset(se.size)
@@ -21,10 +24,9 @@ if __name__ == "__main__":
         
         state = se.game.get_state()
         if i%1000 == 0:
-            if i%20000 == 0:
-                #render = True
-                #se.size += 1
-                #epsilon *= 0.9
+            if i%1000 == 0:
+                render = True
+                epsilon *= 0.9
                 LEARNING_RATE *= 0.96
             print("i: {}".format(i))
             print("eps: {}".format(epsilon))
@@ -36,8 +38,8 @@ if __name__ == "__main__":
                 for event in pygame.event.get(): # User did something
                     if event.type == pygame.QUIT: # If user clicked close
                         carryOn = False # Flag that we are done so we exit this loop
-            #action = np.random.randint(0,4,1)
-            if np.random.uniform() < 0: #epsilon: 
+            
+            if np.random.uniform() < 0: 
                 action = np.random.randint(0,se.act_size) 
             else:
                 action_list = np.argsort(qtable[state])
@@ -56,11 +58,9 @@ if __name__ == "__main__":
                 current_q = qtable[state + (action,)]
                 new_q = (1-LEARNING_RATE)*current_q + LEARNING_RATE * (rew + DISCOUT * max_future_q)
                 qtable[state + (action,)] = new_q
-                #print(rew)
 
             state = new_state
             if render:
-                
                 se.render()
                 pygame.display.update()
                 se.clock.tick(25)
@@ -70,9 +70,7 @@ if __name__ == "__main__":
         se.reset()
 
     pygame.quit()
-
-    pickle.dump
-
-    with open('qtable.pickle', 'wb') as f:
+ 
+    with open('qtable/qtable{}.pickle'.format(current_time), 'wb') as f:
         pickle.dump(qtable, f)
         

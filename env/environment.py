@@ -97,11 +97,6 @@ class SnakeEnv():
         self.game.reset(self.size)
         self.boxsize = int(self.width/self.size)
 
-    def transform_action(self, action):
-        shifted_action = action - 1
-        direction = (self.game.snake.direction + shifted_action) % 4
-        return direction 
-
     def step(self, action):
         self.game.change_dir(action)
         prev_dist = self.game.distance_to_food()
@@ -122,9 +117,7 @@ class SnakeEnv():
             info = ""
 
         reward = self.game.just_ate * 300 - 1000*self.game.game_over + (prev_dist-new_dist)
-        #if done:
-            #reward += (self.game.snake.length-1) * 50
-        
-        #reward = self.game.just_ate * 1 - 100*self.game.game_over - 0.01
-        #reward = 0 - 100*done + 30 
+        if done:
+            reward += (self.game.snake.length-1) * 50
+
         return state, reward, done, info
