@@ -30,54 +30,65 @@ class Simulator:
 class Game:
     def __init__(self, size = 20):
         self.size = size
-        self.snake = Snake([int(self.size/2), int(self.size/2)])
+        pos_init = (np.random.randint(0, high=size-1, size = 2)).tolist()
+        self.snake = Snake(pos_init)
         self.moves_made = 0
+        self.moves_made_since_eat = 0
         self.just_ate = False
         self.game_over = False
         self.game_won = False
         self.spawn_new_food()
 
+        
 
-    def reset(self):
+
+    def reset(self, size):
+        self.__init__(size = size)
+        '''
         self.moves_made = 0
+        self.moves_made_since_eat = 0
         self.game_over = False
         self.just_ate = False
         self.spawn_new_food()
-        self.snake = Snake([int(self.size/2), int(self.size/2)])
-
-    def change_dir(self, direction):
+        self.snake.reset([int(self.size/2), int(self.size/2)]) #= Snake([int(self.size/2), int(self.size/2)])
+        '''
+        
+    def change_dir(self,direction):
         self.snake.direction = direction
+
+        
     
     def get_state(self):
         pos = self.snake.pos
         fp = self.food_pos
-        state = [0]*12
+        
+        
         # collision states
+        tmp1 = (self.check_collision([a+b for a,b in zip(pos, [1,0])]))
+        tmp2 = (self.check_collision([a+b for a,b in zip(pos, [0,1])]))
+        tmp3 = (self.check_collision([a+b for a,b in zip(pos, [-1,0])]))
+        tmp4 = (self.check_collision([a+b for a,b in zip(pos, [0,-1])]))
         
-        state[0] = (self.check_collision([a+b for a,b in zip(pos, [1,0])]))
-        state[1] = (self.check_collision([a+b for a,b in zip(pos, [0,1])]))
-        state[2] = (self.check_collision([a+b for a,b in zip(pos, [-1,0])]))
-        state[3] = (self.check_collision([a+b for a,b in zip(pos, [0,-1])]))
         
+
         # food pos states
-        if ((fp[0] > pos[0]) and (fp[1] == pos[1])): state[4]   = 1
-        if ((fp[0] > pos[0]) and (fp[1] > pos[1])): state[5]    = 1
-        if ((fp[0] == pos[0]) and (fp[1] > pos[1])): state[6]   = 1
-        if ((fp[0] < pos[0]) and (fp[1] > pos[1])): state[7]    = 1
-        if ((fp[0] < pos[0]) and (fp[1] == pos[1])): state[8]   = 1
-        if ((fp[0] < pos[0]) and (fp[1] < pos[1])): state[9]    = 1
-        if ((fp[0] == pos[0]) and (fp[1] < pos[1])): state[10]  = 1
-        if ((fp[0] > pos[0]) and (fp[1] < pos[1])): state[11]   = 1
-        return state
+        if ((fp[0] == pos[0]) and (fp[1] == pos[1])): tmp5 = 0
+        if ((fp[0] > pos[0]) and (fp[1] == pos[1])): tmp5   = 1
+        if ((fp[0] > pos[0]) and (fp[1] > pos[1])): tmp5    = 2
+        if ((fp[0] == pos[0]) and (fp[1] > pos[1])): tmp5  = 3
+        if ((fp[0] < pos[0]) and (fp[1] > pos[1])): tmp5    = 4
+        if ((fp[0] < pos[0]) and (fp[1] == pos[1])): tmp5  = 5
+        if ((fp[0] < pos[0]) and (fp[1] < pos[1])): tmp5    = 6
+        if ((fp[0] == pos[0]) and (fp[1] < pos[1])): tmp5   = 7
+        if ((fp[0] > pos[0]) and (fp[1] < pos[1])): tmp5    = 8
+
+        return (tmp1, tmp2, tmp3, tmp4, tmp5)
+
 
     def distance_to_food(self):
         dist = [abs(a - b) for a,b in zip(self.snake.pos, self.food_pos)]
         return dist[0] + dist[1]
     
-    def create_obs(self, shape = (3,3,2)):
-        grid = np.zeros(shape=shape, dtype=np.float32)
-        #implement returning 3x3 occupancy grid
-        raise NotImplementedError()
 
     def spawn_new_food(self):
         pos = np.random.randint(self.size, size=2)
@@ -89,24 +100,47 @@ class Game:
 
         self.food_pos = pos
 
-    def next_move(self,):
+    def valid_move(self, direction):
+        if self.snake.direction == 0 and direction == 2: return False
+        if self.snake.direction == 1 and direction == 3: return False
+        if self.snake.direction == 2 and direction == 0: return False
+        if self.snake.direction == 3 and direction == 1: return False
+        
+        return True
+
+
+
+    def next_move(self):
         self.moves_made += 1
+        self.moves_made_since_eat += 1
+        if self.moves_made_since_eat > 500:
+            self.game_over
+            
         self.snake.move()
         if self.snake.pos == self.food_pos:
             self.spawn_new_food()
             self.snake.length += 1
-            if self.snake.length == self.size^2: self.game_won = True
+            self.moves_made_since_eat = 0
+            if self.snake.length == (self.size)**2: 
+                print(self.snake.length)
+                self.game_won = True
             self.just_ate = True
+            if self.check_collision(self.snake.pos): 
+                self.game_over = True
             self.snake.body.pop()
             return
 
         if self.just_ate:
             self.just_ate = False
+            if self.check_collision(self.snake.pos): 
+                self.game_over = True
         else:
+            if self.check_collision(self.snake.pos): 
+                self.game_over = True
             self.snake.body.pop()
 
-        if self.check_collision(self.snake.pos): 
-            self.game_over = True
+        
+        
 
     def check_collision(self, pos):
         if pos in self.snake.body[1:]:
@@ -124,7 +158,7 @@ class GameBoard:
     def __init__(self, game, size = 20, show_score = False):
         self.game = game
         self.size = size
-        self.show_score = False
+        self.show_score = show_score
         self.width = 400
         self.height = 400
         self.boxsize = int(self.width/self.size)
@@ -181,21 +215,27 @@ class Snake:
         self.pos = pos
         self.length = 1
         self.direction = 0
-        self.body = [pos]
+        self.body = [self.pos[:]]
+
+    def reset(self, pos):
+        self.length = 1
+        self.direction = 0
+        self.body = []
+        self.body.append(pos)
 
     def move(self):
         tmp = self.pos[:]
 
         if self.direction == 0:
-            self.pos[0] += 1
+            tmp[0] += 1
         elif self.direction == 1:
-            self.pos[1] += 1
+            tmp[1] += 1
         elif self.direction == 2:
-            self.pos[0] += -1
+            tmp[0] += -1
         elif self.direction == 3:
-            self.pos[1] += -1
-
-        self.body.insert(1, tmp)
+            tmp[1] += -1
+        self.pos = tmp
+        self.body.insert(0, tmp)
     
        
 
@@ -223,16 +263,28 @@ if __name__ == "__main__":
 
                 if event.key == pygame.K_LEFT:
                     #gb.next_move(2)
-                    gb.game.change_dir(2)
+                    if gb.game.valid_move(2):
+                        gb.game.snake.direction = 2
+                    else:
+                        print("not ok")
                 if event.key == pygame.K_UP:
                     #gb.next_move(3)
-                    gb.game.change_dir(3)
+                    if gb.game.valid_move(3):
+                        gb.game.snake.direction = 3
+                    else:
+                        print("not ok")
                 if event.key == pygame.K_RIGHT:
                     #gb.next_move(0)
-                    gb.game.change_dir(0)
+                    if gb.game.valid_move(0):
+                        gb.game.snake.direction = 0
+                    else:
+                        print("not ok")
                 if event.key == pygame.K_DOWN:
                     #gb.next_move(1)
-                    gb.game.change_dir(1)
+                    if gb.game.valid_move(1):
+                        gb.game.snake.direction = 1
+                    else:
+                        print("not ok")
 
     
 
@@ -243,11 +295,12 @@ if __name__ == "__main__":
         #gb.change_dir(random.randint(0, 3))
         if running:
             gb.game.next_move()
+
         gb.redraw()
         pygame.display.update()
 
         # --- Limit to 60 frames per second
-        gb.clock.tick(15)
+        gb.clock.tick(1)
 
         #Once we have exited the main program loop we can stop the game engine:
 
